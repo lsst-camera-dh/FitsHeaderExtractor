@@ -18,10 +18,19 @@ class IndexWriter implements AutoCloseable {
     private final Mode mode;
     private final int verbosity;
     private final Path jsonPath;
+    private final boolean singleFileMode;
+
+    IndexWriter(Path jsonPath, Mode mode, int verbosity) {
+        this.mode = mode;
+        this.verbosity = verbosity;
+        this.jsonPath = jsonPath;
+        this.singleFileMode = true;
+    }
 
     IndexWriter(Path directory, Mode mode, Path outputDirectory, int verbosity) {
         this.mode = mode;
         this.verbosity = verbosity;
+        this.singleFileMode = false;
         if (outputDirectory == null) {
             jsonPath = directory.resolve("_index.json");
         } else {
@@ -34,6 +43,16 @@ class IndexWriter implements AutoCloseable {
         if (fileHeaders.isEmpty()) {
             if (verbosity > 1) {
                 System.out.println("Skipped " + jsonPath);
+            }
+        } else if (singleFileMode) {
+            Map<String, Object> headersToWrite = new LinkedHashMap<>();
+            headersToWrite.put("__CONTENT__", "metadata");
+            headersToWrite.putAll(fileHeaders);
+            JsonWriter writer = new JsonWriter();
+
+            writer.writeHeader(jsonPath, headersToWrite);
+            if (verbosity > 0) {
+                System.out.println("Wrote " + jsonPath);
             }
         } else {
             CommonHeaderExtractor che;

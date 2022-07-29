@@ -1,5 +1,6 @@
 package org.lsst.fitsheaderextractor;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,7 +17,7 @@ import picocli.CommandLine;
 @CommandLine.Command(name = "fhe", usageHelpAutoWidth = true)
 public class Main implements Callable<Integer> {
 
-    private final FileScanner scanner;
+    private FileScanner scanner;
 
     @CommandLine.Option(names = {"--help", "-h"}, usageHelp = true, description = "display this help and exit")
     private boolean help;
@@ -41,9 +42,11 @@ public class Main implements Callable<Integer> {
 
     @CommandLine.Option(names = "--imageFilePattern", description = "Regexp for image file (default: ${DEFAULT-VALUE})")
     private Pattern imagePattern = Pattern.compile(".+\\.fits");
+    
+    @CommandLine.Parameters(index = "0", description = "A single FITS file to scan. If specified puts the converter into single file mode.", arity="0..1")
+    private File fitsFile;
 
     public Main() {
-        scanner = new FileScanner();
     }
 
     @Override
@@ -52,8 +55,18 @@ public class Main implements Callable<Integer> {
             throw new RuntimeException("Invalid output directory: " + outputDir);
         }
 
-        scanner.scanForFiles(root, (path, fileAttributes) -> fileAttributes.isDirectory() && imageDirectoryPattern.matcher(path.getFileName().toString()).matches(), this::visitDirectory);
-        //ForkJoinPool.commonPool().awaitQuiescence(365, TimeUnit.DAYS);
+        if (fitsFile != null) {
+            Path fileToRead = fitsFile.toPath();
+            String inputName = fitsFile.getName();
+            String outputName = inputName.endsWith(".fits") ? inputName.replace(".fits", ".json") : inputName.concat( ".json");
+            Path outPath = outputDir == null ? fileToRead.resolveSibling(outputName) : outputDir.resolve(outputName);
+            try (IndexWriter indexWriter = new IndexWriter(outPath, mode, verbosity.length)) {
+                indexWriter.addFile(fileToRead);
+            }
+        } else {
+            scanner = new FileScanner();
+            scanner.scanForFiles(root, (path, fileAttributes) -> fileAttributes.isDirectory() && imageDirectoryPattern.matcher(path.getFileName().toString()).matches(), this::visitDirectory);
+        }
         return 0;
     }
 
