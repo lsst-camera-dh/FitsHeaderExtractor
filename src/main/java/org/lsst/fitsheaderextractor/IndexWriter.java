@@ -47,7 +47,7 @@ class IndexWriter implements AutoCloseable {
         } else if (singleFileMode) {
             Map<String, Object> headersToWrite = new LinkedHashMap<>();
             headersToWrite.put("__CONTENT__", "metadata");
-            headersToWrite.putAll(fileHeaders);
+            headersToWrite.putAll((Map<String, Object>) fileHeaders.values().iterator().next());
             JsonWriter writer = new JsonWriter();
 
             writer.writeHeader(jsonPath, headersToWrite);

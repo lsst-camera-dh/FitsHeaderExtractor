@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import nom.tam.fits.Fits;
 import nom.tam.fits.FitsException;
+import nom.tam.fits.FitsFactory;
 import nom.tam.fits.Header;
 import nom.tam.fits.HeaderCard;
 import nom.tam.fits.header.Standard;
@@ -18,13 +19,17 @@ import nom.tam.util.Cursor;
 public class FitsHeaderReader {
 
     private final Map<String, Map<String, Object>> headerData = new LinkedHashMap<>();
+    
+    static {
+        FitsFactory.setUseHierarch​(true);
+    }
 
     public enum Mode {
         PRIMARY, // Only read the primary header
         IMAGEEXT, // Read the primaryheader and all image extensions
         ALL, // Read all image extensions
         CRAZY // Read primary and first image extension only
-    }  
+    }
 
     FitsHeaderReader(Path fitsPath, Mode mode) throws IOException {
         try (final Fits fits = new Fits(fitsPath.toFile())) {
@@ -61,18 +66,27 @@ public class FitsHeaderReader {
         headerData.put(headerName, headerMap);
         for (Cursor<String, HeaderCard> iterator = header.iterator(); iterator.hasNext();) {
             HeaderCard card = iterator.next();
-            if ("END".equals(card.getKey())) {
+            final String key = card.getKey();
+            if (key.isBlank()) {
+                continue;
+            } else if ("END".equals(key)) {
                 break;
             }
-            Class valueType = card.valueType();
-            if (valueType == Boolean.class) {
-                headerMap.put(card.getKey(), card.getValue(Boolean.class, false));
-            } else if (valueType == Double.class) {
-                headerMap.put(card.getKey(), card.getValue(Double.class, 0.0));
-            } else if (valueType == Integer.class) {
-                headerMap.put(card.getKey(), card.getValue(Integer.class, 0));
-            } else {
-                headerMap.put(card.getKey(), card.getValue());
+            try {
+                Class valueType = card.valueType();
+                if (valueType == null) {
+                    headerMap.put(key, null);
+                } else if (valueType == Boolean.class) {
+                    headerMap.put(key, card.getValue(Boolean.class, false));
+                } else if (valueType == Double.class) {
+                    headerMap.put(key, card.getValue(Double.class, 0.0));
+                } else if (valueType == Integer.class) {
+                    headerMap.put(key, card.getValue(Integer.class, 0));
+                } else {
+                    headerMap.put(key, card.getValue());
+                }
+            } catch (NumberFormatException x) {
+                headerMap.put(key, card.getValue());
             }
         }
     }

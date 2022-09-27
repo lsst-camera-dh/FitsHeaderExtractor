@@ -147,7 +147,7 @@
                                 --report-unsupported-elements-at-runtime 
                                 --allow-incomplete-classpath 
                                 --no-fallback 
-                                --static
+                                -H:+StaticExecutableWithDynamicLibC 
                             </buildArgs>
                         </configuration>
                     </plugin>

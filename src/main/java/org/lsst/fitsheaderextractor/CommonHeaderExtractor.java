@@ -4,10 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
- *
+ * Extract common headers from a set of headers.
  * @author tonyj
  */
 public class CommonHeaderExtractor {
@@ -16,7 +15,7 @@ public class CommonHeaderExtractor {
 
     CommonHeaderExtractor(List<Map<String, Object>> headers) {
         common = new LinkedHashMap<>();
-        if (headers.size() > 0) {
+        if (!headers.isEmpty()) {
             common.putAll(headers.get(0));
             // First pass, remove any items not in common
             for (Map<String, Object> header : headers.subList(1, headers.size())) {
